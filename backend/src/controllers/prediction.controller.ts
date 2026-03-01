@@ -28,7 +28,6 @@ export class PredictionController {
 
     } catch (error: any) {
       console.error("Get Predictions Error:", error);
-
       return res.status(500).json({
         message: error.message || "Failed to fetch predictions",
       });
@@ -56,6 +55,7 @@ export class PredictionController {
 
       const { location, soil_type, crop_type } = parsed.data;
 
+      // 🌦 Fetch Weather
       const weather = await WeatherService.getWeatherByCity(location);
 
       const predictionInput = {
@@ -64,10 +64,9 @@ export class PredictionController {
         humidity: weather.humidity,
         soil_type,
         crop_type,
-        fertilizer: "NPK",
-        area: 1,
       };
 
+      // 🤖 Run ML + Save
       const savedPrediction = await PredictionService.predictAndSave(
         userId,
         predictionInput

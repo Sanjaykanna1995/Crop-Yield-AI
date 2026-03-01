@@ -46,6 +46,7 @@ class PredictionController {
                 });
             }
             const { location, soil_type, crop_type } = parsed.data;
+            // 🌦 Fetch Weather
             const weather = await weather_service_1.WeatherService.getWeatherByCity(location);
             const predictionInput = {
                 temperature: weather.temperature,
@@ -53,9 +54,8 @@ class PredictionController {
                 humidity: weather.humidity,
                 soil_type,
                 crop_type,
-                fertilizer: "NPK",
-                area: 1,
             };
+            // 🤖 Run ML + Save
             const savedPrediction = await prediction_service_1.PredictionService.predictAndSave(userId, predictionInput);
             return res.status(201).json({
                 weather,

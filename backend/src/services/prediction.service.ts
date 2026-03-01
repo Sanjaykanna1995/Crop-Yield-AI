@@ -1,4 +1,5 @@
-import axios from "axios";
+import { spawn } from "child_process";
+import path from "path";
 import { db } from "../config/db";
 import { predictions } from "../db/schema";
 
@@ -11,50 +12,63 @@ interface PredictionInput {
 }
 
 export class PredictionService {
-
   static async predictAndSave(
     userId: string,
     input: PredictionInput
-  ) {
-    try {
+  ): Promise<{ predicted_yield: number }> {
 
-      // 🔥 Call Python ML API
-      const response = await axios.post(
-        "http://127.0.0.1:8000/predict",
-        input,
-        {
-          timeout: 30000,
+    return new Promise((resolve, reject) => {
+
+      const pythonPath = path.join(
+        __dirname,
+        "../../server/ml/predict.py"
+      );
+
+      const pythonProcess = spawn("python", [pythonPath]);
+
+      let result = "";
+      let errorOutput = "";
+
+      pythonProcess.stdin.write(JSON.stringify(input));
+      pythonProcess.stdin.end();
+
+      pythonProcess.stdout.on("data", (data) => {
+        result += data.toString();
+      });
+
+      pythonProcess.stderr.on("data", (data) => {
+        errorOutput += data.toString();
+      });
+
+      pythonProcess.on("close", async (code) => {
+        if (code !== 0) {
+          console.error("Python Error:", errorOutput);
+          return reject(new Error("ML prediction failed"));
         }
-      );
 
-      const predictedYield = response.data.predicted_yield;
+        try {
+          const parsed = JSON.parse(result);
+          const predictedYield = parsed.predicted_yield;
 
-      if (!predictedYield) {
-        throw new Error("Invalid prediction response from ML service");
-      }
+          await db.insert(predictions).values({
+            user_id: userId,
+            temperature: input.temperature,
+            rainfall: input.rainfall,
+            humidity: input.humidity,
+            soil_type: input.soil_type,
+            crop_type: input.crop_type,
+            predicted_yield: predictedYield,
+          });
 
-      // 💾 Insert only columns that EXIST in schema
-      const saved = await db
-        .insert(predictions)
-        .values({
-          user_id: userId,
-          temperature: input.temperature,
-          rainfall: input.rainfall,
-          humidity: input.humidity,
-          soil_type: input.soil_type,
-          crop_type: input.crop_type,
-          predicted_yield: predictedYield,
-        })
-        .returning();
+          resolve({
+            predicted_yield: Number(predictedYield),
+          });
 
-      return saved[0];
-
-    } catch (error: any) {
-      console.error(
-        "Prediction Service Error:",
-        error.response?.data || error.message
-      );
-      throw new Error("ML prediction failed");
-    }
+        } catch (err) {
+          console.error("Parse Error:", err);
+          reject(new Error("Invalid ML response"));
+        }
+      });
+    });
   }
 }
