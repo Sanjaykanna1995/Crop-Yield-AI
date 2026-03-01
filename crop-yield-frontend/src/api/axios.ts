@@ -6,7 +6,7 @@ import type {
 } from "../types/user.types";
 
 const API = axios.create({
-  baseURL: "https://crop-yield-ai-ilwk.onrender.com/api",
+  baseURL: "https://crop-yield-ai-ilwk.onrender.com/",
   withCredentials: true,
 });
 
