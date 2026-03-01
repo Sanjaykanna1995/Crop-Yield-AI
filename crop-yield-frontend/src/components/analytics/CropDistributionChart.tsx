@@ -11,7 +11,6 @@ interface CropDistributionChartProps {
   data: Array<{ crop: string; count: number }>;
 }
 
-// An earthy, vibrant palette perfect for crops/soils
 const COLORS = [
   "#10B981", // Emerald Green
   "#F59E0B", // Amber/Wheat
@@ -42,13 +41,13 @@ const CropDistributionChart = ({ data }: CropDistributionChartProps) => {
               nameKey="crop"
               cx="50%"
               cy="50%"
-              innerRadius={75} // Creates the donut hole
+              innerRadius={75}
               outerRadius={105}
-              paddingAngle={4} // Adds spacing between slices
-              stroke="none" // Removes default borders
-              cornerRadius={6} // Rounds the edges of the slices
+              paddingAngle={4}
+              stroke="none"
+              cornerRadius={6}
             >
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell 
                   key={`cell-${index}`} 
                   fill={COLORS[index % COLORS.length]} 
