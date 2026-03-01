@@ -11,50 +11,34 @@ const weatherCache = new Map<string, { data: WeatherData; expiry: number }>();
 
 export class WeatherService {
 
-  static async getWeatherByCity(city: string): Promise<WeatherData> {
+  static async getWeatherByCity(city: string) {
+  try {
+    const apiKey = process.env.OPENWEATHER_API_KEY;
 
-    // 🔹 Basic 5 min cache
-    const cached = weatherCache.get(city);
-    if (cached && cached.expiry > Date.now()) {
-      return cached.data;
+    if (!apiKey) {
+      throw new Error("Weather API key not configured");
     }
 
-    try {
-      const response = await axios.get(env.OPENWEATHER_BASE_URL, {
-        timeout: 5000, // ⏱ timeout protection
+    const response = await axios.get(
+      "https://api.openweathermap.org/data/2.5/weather",
+      {
         params: {
-          q: city,
-          appid: env.OPENWEATHER_API_KEY,
+          q: `${city},IN`,   // 👈 important
+          appid: apiKey,
           units: "metric",
         },
-      });
-
-      const data = response.data;
-
-      const weather: WeatherData = {
-        temperature: Number(data.main?.temp),
-        humidity: Number(data.main?.humidity),
-        rainfall: data.rain?.["1h"] ? Number(data.rain["1h"]) : 0,
-      };
-
-      weatherCache.set(city, {
-        data: weather,
-        expiry: Date.now() + 5 * 60 * 1000,
-      });
-
-      return weather;
-
-    } catch (error: any) {
-
-      if (error.code === "ECONNABORTED") {
-        throw new Error("Weather API timeout");
       }
+    );
 
-      if (error.response?.data?.message) {
-        throw new Error(`Weather API Error: ${error.response.data.message}`);
-      }
+    return {
+      temperature: response.data.main.temp,
+      humidity: response.data.main.humidity,
+      rainfall: response.data.rain?.["1h"] || 0,
+    };
 
-      throw new Error("Failed to fetch weather data");
-    }
+  } catch (error: any) {
+    console.error("Weather API Full Error:", error.response?.data || error.message);
+    throw new Error("Weather API Error: city not found");
   }
+}
 }
