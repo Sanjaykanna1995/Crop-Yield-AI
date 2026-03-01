@@ -1,90 +1,60 @@
-import { spawn } from "child_process";
-import path from "path";
+import axios from "axios";
 import { db } from "../config/db";
 import { predictions } from "../db/schema";
 
-export interface PredictionInput {
+interface PredictionInput {
   temperature: number;
   rainfall: number;
   humidity: number;
   soil_type: string;
   crop_type: string;
-  fertilizer: string;
-  area: number;
 }
 
 export class PredictionService {
 
-  static predictAndSave(
-  userId: string,
-  data: PredictionInput
-): Promise<any> {
+  static async predictAndSave(
+    userId: string,
+    input: PredictionInput
+  ) {
+    try {
 
-  return new Promise((resolve, reject) => {
-
-    const scriptPath = path.join(
-      __dirname,
-      "../../../server/ml/predict.py"
-    );
-
-    const pythonProcess = spawn("python", [scriptPath], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    let result = "";
-    let errorOutput = "";
-
-    const timeout = setTimeout(() => {
-      pythonProcess.kill();
-      reject(new Error("ML prediction timeout"));
-    }, 50000); // 10 seconds max
-
-    pythonProcess.stdin.write(JSON.stringify(data));
-    pythonProcess.stdin.end();
-
-    pythonProcess.stdout.on("data", (chunk) => {
-      result += chunk.toString();
-    });
-
-    pythonProcess.stderr.on("data", (chunk) => {
-      errorOutput += chunk.toString();
-    });
-
-    pythonProcess.on("close", async (code) => {
-
-      clearTimeout(timeout);
-
-      if (code !== 0) {
-        console.error("Python Error:", errorOutput);
-        return reject(new Error("ML prediction failed"));
-      }
-
-      try {
-        const parsed = JSON.parse(result);
-
-        if (!parsed.predicted_yield) {
-          throw new Error("Invalid ML response");
+      // 🔥 Call Python ML API
+      const response = await axios.post(
+        "http://127.0.0.1:8000/predict",
+        input,
+        {
+          timeout: 30000,
         }
+      );
 
-        const inserted = await db
-          .insert(predictions)
-          .values({
-            user_id: userId,
-            temperature: data.temperature,
-            rainfall: data.rainfall,
-            humidity: data.humidity,
-            soil_type: data.soil_type,
-            crop_type: data.crop_type,
-            predicted_yield: parsed.predicted_yield,
-          })
-          .returning();
+      const predictedYield = response.data.predicted_yield;
 
-        resolve(inserted[0]);
-
-      } catch (err) {
-        reject(new Error("Failed to process prediction result"));
+      if (!predictedYield) {
+        throw new Error("Invalid prediction response from ML service");
       }
-    });
-  });
-}
+
+      // 💾 Insert only columns that EXIST in schema
+      const saved = await db
+        .insert(predictions)
+        .values({
+          user_id: userId,
+          temperature: input.temperature,
+          rainfall: input.rainfall,
+          humidity: input.humidity,
+          soil_type: input.soil_type,
+          crop_type: input.crop_type,
+          predicted_yield: predictedYield,
+        })
+        .returning();
+
+      return saved[0];
+
+    } catch (error: any) {
+      console.error(
+        "Prediction Service Error:",
+        error.response?.data || error.message
+      );
+      throw new Error("ML prediction failed");
+    }
+  }
 }

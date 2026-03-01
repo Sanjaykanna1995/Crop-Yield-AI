@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const auth_service_1 = require("../services/auth.service");
 class AuthController {
-    // 🔐 REGISTER API
+    /* =========================
+       REGISTER
+    ========================= */
     static async register(req, res) {
         try {
             const { name, email, password } = req.body;
@@ -19,12 +21,15 @@ class AuthController {
             });
         }
         catch (error) {
+            console.error("Register Error:", error);
             return res.status(400).json({
                 message: error.message || "Registration failed",
             });
         }
     }
-    // 🔑 LOGIN API
+    /* =========================
+       LOGIN
+    ========================= */
     static async login(req, res) {
         try {
             const { email, password } = req.body;
@@ -40,8 +45,9 @@ class AuthController {
             });
         }
         catch (error) {
+            console.error("Login Error:", error);
             return res.status(401).json({
-                message: error.message || "Login failed",
+                message: error.message || "Authentication failed",
             });
         }
     }

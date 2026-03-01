@@ -21,7 +21,10 @@ const app = (0, express_1.default)();
 // Middleware
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
-    origin: "http://localhost:5173",
+    origin: [
+        "http://localhost:5173",
+        "https://crop-yield-ai.vercel.app"
+    ],
     credentials: true,
 }));
 // Health Check
