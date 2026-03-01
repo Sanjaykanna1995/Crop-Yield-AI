@@ -13,6 +13,9 @@ class PredictionController {
     ========================= */
     static async getAllPredictions(req, res) {
         try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
             const userId = req.user.id;
             const userPredictions = await db_1.db
                 .select()
@@ -32,6 +35,9 @@ class PredictionController {
     ========================= */
     static async predict(req, res) {
         try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
             const userId = req.user.id;
             const parsed = prediction_dto_1.predictionSchema.safeParse(req.body);
             if (!parsed.success) {
@@ -68,7 +74,10 @@ class PredictionController {
     ========================= */
     static async updatePrediction(req, res) {
         try {
-            const userId = req.user.userId || req.user.id;
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+            const userId = req.user.id;
             const predictionId = String(req.params.id);
             const { actual_yield } = req.body;
             if (!actual_yield || Number(actual_yield) <= 0) {
