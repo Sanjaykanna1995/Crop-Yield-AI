@@ -37,7 +37,7 @@ export class PredictionService {
     const timeout = setTimeout(() => {
       pythonProcess.kill();
       reject(new Error("ML prediction timeout"));
-    }, 10000); // 10 seconds max
+    }, 50000); // 10 seconds max
 
     pythonProcess.stdin.write(JSON.stringify(data));
     pythonProcess.stdin.end();
