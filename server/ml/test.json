@@ -1,0 +1,9 @@
+{
+  "temperature": 25,
+  "rainfall": 200,
+  "humidity": 80,
+  "soil_type": "Loamy",
+  "crop_type": "Wheat",
+  "fertilizer": "Urea",
+  "area": 10
+}
